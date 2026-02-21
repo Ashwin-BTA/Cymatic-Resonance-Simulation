@@ -26,23 +26,32 @@ class ParticleSystem:
 
         # --- 1. DENSITY & WEIGHT CALCULATION ---
         # Create a blank map and count how many particles are in each pixel
+       # --- 1. DENSITY & WEIGHT CALCULATION (OPTIMIZED) ---
         flat_indices = grid_y * res + grid_x
         counts = np.bincount(flat_indices, minlength=res*res)
         p_density = counts[flat_indices]
         
-        # HALVED the weight penalty so the sand isn't quite as heavy
-        p_weight = 1.0 + (p_density * 0.05)
+        # THE FIX: Calculate the raw weight, but cap it at 2.5 maximum.
+        # This prevents the particles from creating inescapable black holes!
+        raw_weight = 1.0 + (p_density * 0.05)
+        p_weight = np.clip(raw_weight, 1.0, 2.5) 
 
-        # --- 2. APPLY FORCES ---
-        friction = 0.88 # Slightly looser so they can slide around the lines
-        acceleration = 0.75 # Relaxed the vacuum force slightly
+        # --- 2. APPLY FORCES (BALANCED FOR 25 FPS) ---
+        # Increased friction closer to 1.0 to account for more frames per second
+        friction = 0.92 
         
-        self.vx = (self.vx * friction) - (p_grad_x * acceleration)
-        self.vy = (self.vy * friction) - (p_grad_y * acceleration)
+        # Decreased direct pull and curl power so total movement per second stays the same
+        direct_pull = 0.44 
+        curl_power = 0.28 
+        
+        force_x = (p_grad_x * direct_pull) + (p_grad_y * curl_power)
+        force_y = (p_grad_y * direct_pull) - (p_grad_x * curl_power)
+        
+        self.vx = (self.vx * friction) - force_x
+        self.vy = (self.vy * friction) - force_y
 
-        # Base explosion force from the audio beat
-
-        base_vibration = 0.005 + (current_rms * 0.04) 
+        # Scaled down slightly so the 25 FPS drum hits maintain the same total shatter energy
+        base_vibration = 0.008 + (current_rms * 0.048) 
         dynamic_vibration = base_vibration / p_weight
         
         self.vx += np.random.uniform(-1, 1, self.num_particles) * (p_amplitude * dynamic_vibration)

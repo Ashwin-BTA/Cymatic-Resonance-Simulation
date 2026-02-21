@@ -11,8 +11,8 @@ from particle_system import ParticleSystem
 # --- Configuration ---
 FPS =25
 WINDOW_SIZE = 800
-AUDIO_FILE = "Hz.wav"
-NUM_PARTICLES = 100000
+AUDIO_FILE = "audio001.wav"
+NUM_PARTICLES = 20000
 
 def main():
     print("Initializing Simulation... Please wait.")
